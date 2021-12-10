@@ -4,7 +4,7 @@ import json
 import threading
 import traceback
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from typing import List, Set
 from qiscord.msg_handler.base_handler import Base_handler
 from qiscord.msg_handler import echo, memo_handler, user_handler, chara_handler
 from qiscord.decorator import singleton
@@ -40,7 +40,7 @@ class Listenter(threading.Thread):
         self.print_info = print_info
         self.__sk: socket.socket = None
         self.__ses = requests.Session()
-        self.__handler_list: List[Base_handler] = []
+        self.__handler_list: Set[Base_handler] = set()
         self.__threadPool = ThreadPoolExecutor(max_workers=10, thread_name_prefix="handler_")
         self.restart_sk()
     
@@ -206,12 +206,11 @@ class Listenter(threading.Thread):
         '''
         加载默认的处理器
         '''
-        self.__handler_list.clear()
-        self.__handler_list.append(Help())
-        self.__handler_list.append(echo.Echo())
-        self.__handler_list.append(user_handler.User_Handler())
-        self.__handler_list.append(memo_handler.Memo())
-        self.__handler_list.append(chara_handler.Char_Handler())
+        self.__handler_list.add(Help())
+        self.__handler_list.add(echo.Echo())
+        self.__handler_list.add(user_handler.User_Handler())
+        self.__handler_list.add(memo_handler.Memo())
+        self.__handler_list.add(chara_handler.Char_Handler())
 
     def get_current_handler(self) -> List[Base_handler]:
         '''
@@ -230,7 +229,7 @@ class Listenter(threading.Thread):
                 if self.print_info:
                     print("[WARNING]该功能重复装载：", h.get_method_name)
                 return
-        self.__handler_list.append(h)
+        self.__handler_list.add(h)
 
 @singleton
 class Help(Base_handler):
