@@ -3,6 +3,7 @@ import json
 import threading
 import requests
 import re
+import math
 from urllib.parse import quote
 from typing import Dict, List, Tuple
 from qiscord.decorator import singleton
@@ -38,6 +39,7 @@ class Memoria:
 @singleton
 class MemoriaDb:
     memo_data: Dict[str, Memoria]
+    trans_data: dict
     alias_data: dict
     __async_thread: threading.Thread
     __json_path: str
@@ -46,6 +48,7 @@ class MemoriaDb:
 
     def __init__(self, json_path=None, trans_path=None, alias_path=None) -> None:
         self.alias_data = {}
+        self.trans_data = {}
         self.memo_data : Dict[str, Memoria] = {}
         self.__async_thread = None
         self.__json_path = None
@@ -78,7 +81,8 @@ class MemoriaDb:
         try:
             with open(trans_path, 'r', encoding='utf-8') as f:
                 text = f.read()
-                self.__load_translate(json.loads(text))
+                self.trans_data = json.loads(text)
+                self.__load_translate(self.trans_data)
             self.__trans_path = trans_path
         except Exception:
             traceback.print_exc()
@@ -106,6 +110,8 @@ class MemoriaDb:
                     memo.zh_name = zh_name
                 get_way = function_kit.get_v_from_d(v, "get_way")
                 if get_way is not None:
+                    get_way = re.sub(r"\[\[([^\|\]]+?)\]\]", r"\1", get_way)
+                    get_way = re.sub(r"\[\[([^\]]+?)\|([^\]]+?)\]\]", r"\2", get_way)
                     memo.fetch_way = get_way
 
     def __load_memo(self, memo_dict: Dict[str, dict]):
@@ -124,9 +130,9 @@ class MemoriaDb:
             current_memo.min_hp = function_kit.get_v_from_d(d, "hp", 0)
             current_memo.min_atk = function_kit.get_v_from_d(d, "attack", 0)
             current_memo.min_def = function_kit.get_v_from_d(d, "defense", 0)
-            current_memo.max_hp = round(current_memo.min_hp * 2.5)
-            current_memo.max_atk = round(current_memo.min_atk * 2.5)
-            current_memo.max_def = round(current_memo.min_def * 2.5)
+            current_memo.max_hp = math.floor(current_memo.min_hp * 2.5)
+            current_memo.max_atk = math.floor(current_memo.min_atk * 2.5)
+            current_memo.max_def = math.floor(current_memo.min_def * 2.5)
 
             chara_list = function_kit.get_v_from_d(d, "charaList", [])
             if len(chara_list) > 0:
@@ -216,10 +222,9 @@ class MemoriaDb:
         '''
         print("开始更新译名")
         ses = requests.Session()
-        new_dict = {}
-        current_raw_data = self.raw_data.copy()
+        current_raw_data = self.memo_data.copy()
         for k, v in current_raw_data.items():
-            m_name = function_kit.get_v_from_d(v, "pieceName", need_str=True)
+            m_name = v.name
             m_zhname = None
             m_way = None
             if m_name is not None:
@@ -244,23 +249,24 @@ class MemoriaDb:
                                 regex_s = re.search("中文名 *= *([^\n]+?)\n", content)
                                 if regex_s is not None:
                                     m_zhname = regex_s.group(1)
-                                    break
                                 regex_get = re.search("入手方式 *= *([^\n]+?)\n", content)
                                 if regex_get is not None:
                                     m_way = regex_get.group(1).strip()
-                    new_dict[k] = {}
+                    if k not in self.trans_data.keys():
+                        self.trans_data[k] = {}
                     if m_zhname is not None and len(m_zhname) > 0:
-                        new_dict[k]["zh_name"] = m_zhname
+                        self.trans_data[k]["zh_name"] = m_zhname
                     if m_way is not None and len(m_way) > 0:
-                        new_dict[k]["get_way"] = m_way
-                    print("%s="%k, new_dict[k])
+                        self.trans_data[k]["get_way"] = m_way
+                    print("%s="%k, self.trans_data[k])
                 except Exception:
                     traceback.print_exc()
         
         print("更新记忆结果：")
-        print(new_dict)
+        print(self.trans_data)
         with open(self.__trans_path, "w", encoding="utf-8") as f:
-            f.write(json.dumps(new_dict, ensure_ascii=False))
+            f.write(json.dumps(self.trans_data, ensure_ascii=False))
+        self.__load_translate(self.trans_data)
 
         # 结束
         ses.close()

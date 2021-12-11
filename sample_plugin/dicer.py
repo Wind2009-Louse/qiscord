@@ -13,13 +13,17 @@ class Dice:
             self.dice_count = 1
             self.dice_maxnum = int(regex_fixed.group(1))
         
-        regex_random = re.match("^(\d+)[Dd](\d+)", dice_str)
+        regex_random = re.match("^(\d*)[Dd](\d+)", dice_str)
         if regex_random is not None:
             self.is_random = True
-            self.dice_count = int(regex_random.group(1))
+            count_str = regex_random.group(1)
+            if len(count_str) == 0:
+                self.dice_count = 1
+            else:
+                self.dice_count = int(regex_random.group(1))
+                if self.dice_count <= 0:
+                    raise ValueError("不能不丢骰子！")
             self.dice_maxnum = int(regex_random.group(2))
-            if self.dice_count <= 0:
-                raise ValueError("不能不丢骰子！")
             if self.dice_maxnum <= 0:
                 raise ValueError("不能丢0面骰！")
         
@@ -51,10 +55,14 @@ class Dicer(Base_handler):
         data_arg = data[1]
         arg_list = data_arg.split("+")
         dice_list: List[Dice] = []
+        dice_count = 0
         try:
             for arg in arg_list:
                 dice = Dice(arg)
+                dice_count += dice.dice_count
                 dice_list.append(dice)
+            if dice_count > 100:
+                raise ValueError("一次只能丢最多100个骰子！")
             sum = 0
             result = data_arg + "="
             result_str_list: List[str] = []

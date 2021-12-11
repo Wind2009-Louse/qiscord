@@ -3,8 +3,9 @@ import json
 import threading
 import requests
 import re
+import math
 from urllib.parse import quote
-from typing import Dict, List, Set, Tuple
+from typing import Dict, List, Set
 from qiscord.decorator import singleton
 from qiscord.toolkit import function_kit, skill_effect
 
@@ -132,6 +133,7 @@ class CharaSearchFilter:
 @singleton
 class CharaDb:
     chara_data: Dict[str, Chara]
+    trans_data: dict
     alias_data: dict
     __async_thread: threading.Thread
     __json_path: str
@@ -140,6 +142,7 @@ class CharaDb:
 
     def __init__(self, json_path=None, trans_path=None, alias_path=None) -> None:
         self.chara_data = {}
+        self.trans_data = {}
         self.alias_data = {}
         self.__json_path = None
         self.__trans_path = None
@@ -173,8 +176,8 @@ class CharaDb:
         try:
             with open(trans_path, 'r', encoding='utf-8') as f:
                 text = f.read()
-                trans_data = json.loads(text)
-                self.__load_translate(trans_data)
+                self.trans_data = json.loads(text)
+                self.__load_translate(self.trans_data)
             self.__trans_path = trans_path
         except Exception:
             traceback.print_exc()
@@ -330,9 +333,9 @@ class CharaDb:
         card.min_atk = function_kit.get_v_from_d(card_data, "attack", default=0)
         card.min_def = function_kit.get_v_from_d(card_data, "defense", default=0)
         grow_tuple = GROW_BASE_MAP[card.grow_type]
-        card.max_hp = round(card.min_hp + card.min_hp * grow_tuple[0] * function_kit.get_v_from_d(RANK_GROW_MAP, rank_str, default=0))
-        card.max_atk = round(card.min_atk + card.min_atk * grow_tuple[1] * function_kit.get_v_from_d(RANK_GROW_MAP, rank_str, default=0))
-        card.max_def = round(card.min_def + card.min_def * grow_tuple[2] * function_kit.get_v_from_d(RANK_GROW_MAP, rank_str, default=0))
+        card.max_hp = math.floor(card.min_hp + card.min_hp * grow_tuple[0] * function_kit.get_v_from_d(RANK_GROW_MAP, rank_str, default=0))
+        card.max_atk = math.floor(card.min_atk + card.min_atk * grow_tuple[1] * function_kit.get_v_from_d(RANK_GROW_MAP, rank_str, default=0))
+        card.max_def = math.floor(card.min_def + card.min_def * grow_tuple[2] * function_kit.get_v_from_d(RANK_GROW_MAP, rank_str, default=0))
         # 计算MP效率
         card.attack_mp_rate = function_kit.get_v_from_d(card_data, "rateGainMpAtk", 0)
         card.def_mp_rate = function_kit.get_v_from_d(card_data, "rateGainMpDef", 0)
@@ -461,7 +464,7 @@ class CharaDb:
                     filter_match = False
             # 根据名称搜索
             for key in filter.key_list:
-                if c.name.find(key) == -1 and c.zh_name.find(key) == -1:
+                if (c.name.find(key) == -1) and (c.zh_name is None or c.zh_name.find(key)) == -1:
                     filter_match = False
                     break
             if filter_match:
@@ -506,7 +509,6 @@ class CharaDb:
         '''
         print("开始更新译名")
         ses = requests.Session()
-        new_dict = {}
         current_chara_data = self.chara_data.copy()
         for k, v in current_chara_data.items():
             chara_name = v.name
@@ -545,25 +547,26 @@ class CharaDb:
                                 regex_dp = re.search("doppel中文 *= *([^\n]+?)\n", content)
                                 if regex_dp is not None:
                                     dp_zhname = regex_dp.group(1).strip()
-                    new_dict[k] = {}
+                    if k not in self.trans_data.keys():
+                        self.trans_data[k] = {}
                     if chara_zhname is not None and len(chara_zhname) > 0:
-                        new_dict[k][CHARA_NAME_ZH] = chara_zhname
+                        self.trans_data[k][CHARA_NAME_ZH] = chara_zhname
                     if cn_zhname is not None and len(cn_zhname) > 0:
-                        new_dict[k][CONNECT_NAME_ZH] = cn_zhname
+                        self.trans_data[k][CONNECT_NAME_ZH] = cn_zhname
                     if mg_zhname is not None and len(mg_zhname) > 0:
-                        new_dict[k][MAGIA_NAME_ZH] = mg_zhname
+                        self.trans_data[k][MAGIA_NAME_ZH] = mg_zhname
                     if dp_zhname is not None and len(dp_zhname) > 0:
-                        new_dict[k][DOPPEL_NAME_ZH] = dp_zhname
-                    print("%s="%k, new_dict[k])
+                        self.trans_data[k][DOPPEL_NAME_ZH] = dp_zhname
+                    print("%s="%k, self.trans_data[k])
                 except Exception:
                     traceback.print_exc()
         
         print("更新角色结果：")
-        print(new_dict)
+        print(self.trans_data)
         with open(self.__trans_path, "w", encoding="utf-8") as f:
-            f.write(json.dumps(new_dict, ensure_ascii=False))
+            f.write(json.dumps(self.trans_data, ensure_ascii=False))
 
         # 结束
         ses.close()
-        self.__load_translate(new_dict)
+        self.__load_translate(self.trans_data)
         self.__async_thread = None
