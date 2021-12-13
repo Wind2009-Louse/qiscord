@@ -446,7 +446,7 @@ class CharaDb:
                         return res
         
         if filter.origin_key in self.chara_data:
-            return [self.chara_data[key]]
+            return [self.chara_data[filter.origin_key]]
         
         # 从原数据中读取
         for c in self.chara_data.values():

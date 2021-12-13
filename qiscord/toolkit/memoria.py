@@ -5,7 +5,7 @@ import requests
 import re
 import math
 from urllib.parse import quote
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Set
 from qiscord.decorator import singleton
 from qiscord.toolkit import function_kit
 
@@ -35,6 +35,44 @@ class Memoria:
         self.artlist_mlb : List[dict] = []
 
         self.fetch_way = ""
+
+class MemoriaSearchFilter:
+    def __init__(self, filters: List[str]=[]) -> None:
+        self.empty_search = False
+        self.origin_key_list = filters
+        self.origin_key = " ".join(filters)
+
+        self.rank_set: Set[str] = []
+        self.type_set: Set[str] = []
+        self.key_list = []
+        for key in filters:
+            transformed = False
+
+            # 等级
+            reg_r = re.match("^([\d]+星)", key)
+            if reg_r is not None:
+                self.rank_set.append(reg_r.group(1))
+                transformed = True
+            reg_r2 = re.match("^([\d]+)", key)
+            if reg_r2 is not None:
+                self.rank_set.append(reg_r2.group(1) + "星")
+                transformed = True
+
+            # 类型
+            reg_t = re.match("^([\S]+型)", key)
+            if reg_t is not None:
+                self.type_set.append(reg_t.group(1))
+                transformed = True
+            elif key in TYPE_DICT.values():
+                self.type_set.append(key)
+                transformed = True
+            
+            # 关键字
+            if not transformed:
+                self.key_list.append(key)
+        
+        if len(filters) == 0:
+            self.empty_search = True
 
 @singleton
 class MemoriaDb:
@@ -125,7 +163,7 @@ class MemoriaDb:
                 continue
             type_str = function_kit.get_v_from_d(d, "pieceType", "")
             current_memo.type = function_kit.get_v_from_d(TYPE_DICT, type_str, type_str)
-            current_memo.rank = function_kit.get_v_from_d(d, "rank", "RANK_0")
+            current_memo.rank = function_kit.get_v_from_d(d, "rank", "RANK_0")[-1] + "星"
 
             current_memo.min_hp = function_kit.get_v_from_d(d, "hp", 0)
             current_memo.min_atk = function_kit.get_v_from_d(d, "attack", 0)
@@ -151,36 +189,48 @@ class MemoriaDb:
         art_list = function_kit.get_artlist_from_skill(skill_dict)
         return (turn, art_list)
 
-    def search_memoria(self, key: str, redirect=True) -> List[Memoria]:
+    def search_memoria(self, key_list: List[str], redirect=True) -> List[Memoria]:
         '''
         根据key检索记忆
         '''
-        result_id_set = set()
-        result_only_id = None
-        if key is None or len(key) == 0:
-            return []
+        filter = MemoriaSearchFilter(key_list)
+        result_id_list = []
+        if filter.empty_search:
+            return result_id_list
         
-        if redirect and key in self.alias_data:
-            alias_key = self.alias_data[key]
-            res = self.search_memoria(alias_key, False)
-            if len(res) > 0:
-                return res
+        if redirect:
+            alias_key = function_kit.get_v_from_d(self.alias_data, filter.origin_key)
+            if alias_key is not None:
+                res = self.search_memoria([alias_key], False)
+                if len(res) > 0:
+                    return res
 
-        # 从原数据中读取
-        for k, v in self.memo_data.items():
-            if key in [k, v.name, v.zh_name]:
-                return [v]
-            
-            for n in [v.name, v.zh_name]:
-                if n is not None and n.find(key) != -1:
-                    result_id_set.add(k)
+        if filter.origin_key in self.memo_data:
+            return [self.memo_data[filter.origin_key]]
         
-        result = []
-        for id in result_id_set:
-            sub_result = function_kit.get_v_from_d(self.memo_data, id)
-            if sub_result is not None:
-                result.append(sub_result)
-        return result
+        # 从原数据中读取
+        for m in self.memo_data.values():
+            if filter.origin_key in [m.name, m.zh_name]:
+                return [m]
+            
+            filter_match = True
+            # 根据等级搜索
+            if len(filter.rank_set) > 0:
+                if m.rank not in filter.rank_set:
+                    filter_match = False
+            # 根据类型搜索
+            if len(filter.type_set) > 0:
+                if m.type not in filter.type_set:
+                    filter_match = False
+            # 根据名称搜索
+            for key in filter.key_list:
+                if (m.name.find(key) == -1) and (m.zh_name is None or m.zh_name.find(key)) == -1:
+                    filter_match = False
+                    break
+            if filter_match:
+                result_id_list.append(m)
+        
+        return result_id_list
     
     def add_alias(self, m:dict, alias:str) -> bool:
         m_name = function_kit.get_v_from_d(m, "pieceName")

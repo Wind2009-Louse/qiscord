@@ -36,11 +36,11 @@ class Memo(Base_handler):
                 return "无权操作！"
             if len(data) < 4:
                 return "参数不足！"
-            search_key = data[2]
-            short_name = data[3]
+            search_key = data[2:-1]
+            short_name = data[-1]
             memo_list = self.__memo_kit.search_memoria(search_key)
             if len(memo_list) == 0:
-                return "以下关键字找不到记忆：" + search_key
+                return "以下关键字找不到记忆：" + " ".join(search_key)
             elif len(memo_list) > 1:
                 result = "找到多于一个记忆，请修改关键词！"
             else:
@@ -55,7 +55,7 @@ class Memo(Base_handler):
             return str(self.__memo_kit.del_alias(short_name))
 
         else:
-            result_list = self.__memo_kit.search_memoria(key)
+            result_list = self.__memo_kit.search_memoria(data[1:])
             if len(result_list) == 0:
                 return "以下关键字找不到记忆：" + key
             elif len(result_list) > 1:
