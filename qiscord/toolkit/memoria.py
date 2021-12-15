@@ -224,7 +224,7 @@ class MemoriaDb:
                     filter_match = False
             # 根据名称搜索
             for key in filter.key_list:
-                if (m.name.find(key) == -1) and (m.zh_name is None or m.zh_name.find(key)) == -1:
+                if (m.name.find(key) == -1) and (m.zh_name is None or m.zh_name.find(key) == -1) :
                     filter_match = False
                     break
             if filter_match:
