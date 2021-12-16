@@ -193,7 +193,7 @@ class Listenter(threading.Thread):
         if MT_PRIVATE == message_type:
             return True, message
         else:
-            self_id = function_kit.get_v_from_d(req, SI)
+            self_id = function_kit.get_v_from_d(req, SI, need_str=True)
             if MT_GUILD == message_type:
                 self_id = function_kit.get_v_from_d(req, SI_T, need_str=True)
             at_str = "[CQ:at,qq=" + self_id + "]"

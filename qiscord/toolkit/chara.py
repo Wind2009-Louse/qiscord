@@ -148,7 +148,7 @@ class CharaDb:
         self.__trans_path = None
         self.__alias_path = None
         self.__async_thread = None
-        self.reload_data()
+        self.reload_data(json_path, trans_path, alias_path)
     
     def reload_data(self, json_path=None, trans_path=None, alias_path=None):
         '''
@@ -158,7 +158,7 @@ class CharaDb:
             if self.__json_path is not None:
                 json_path = self.__json_path
             else:
-                json_path = "git_data/memoria.json"
+                json_path = "git_data/charaCard.json"
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
                 text = f.read()
