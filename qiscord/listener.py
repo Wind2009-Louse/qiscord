@@ -9,6 +9,7 @@ from qiscord.msg_handler.base_handler import Base_handler
 from qiscord.msg_handler import echo, memo_handler, user_handler, chara_handler
 from qiscord.decorator import singleton
 from qiscord.toolkit import function_kit
+from qiscord.toolkit.dicer import Dicer
 
 HttpResponseHeader = '''HTTP/1.1 200 OK
 Content-Type: text/html
@@ -208,6 +209,7 @@ class Listenter(threading.Thread):
         '''
         self.__handler_list.add(Help())
         self.__handler_list.add(echo.Echo())
+        self.__handler_list.add(Dicer())
         self.__handler_list.add(user_handler.User_Handler())
         self.__handler_list.add(memo_handler.Memo())
         self.__handler_list.add(chara_handler.Char_Handler())
