@@ -7,7 +7,7 @@ import math
 from urllib.parse import quote
 from typing import Dict, List, Tuple, Set
 from qiscord.decorator import singleton
-from qiscord.toolkit import function_kit
+from qiscord.toolkit import function_kit, skill_effect
 
 query_url = "https://magireco.moe/api.php?action=query&prop=revisions&rvslots=%2A&rvprop=content&formatversion=2&format=json&titles="
 TYPE_DICT= {"SKILL": "技能型", "ABILITY": "能力型"}
@@ -35,6 +35,22 @@ class Memoria:
         self.artlist_mlb : List[dict] = []
 
         self.fetch_way = ""
+    
+    def to_skill_format(self, max=True) -> skill_effect.Skill:
+        result = skill_effect.Skill()
+        if max:
+            result.current_turn = self.cd_mlb
+            result.turn = self.cd_mlb
+            result.art_list.extend(self.artlist_mlb)
+        else:
+            result.current_turn = self.cd_nmlb
+            result.turn = self.cd_nmlb
+            result.art_list.extend(self.artlist_nmlb)
+        if result.current_turn > 0:
+            result.effect_type = "SKILL"
+        else:
+            result.effect_type = "ABILITY"
+        return result
 
 class MemoriaSearchFilter:
     def __init__(self, filters: List[str]=[]) -> None:
@@ -232,8 +248,8 @@ class MemoriaDb:
         
         return result_id_list
     
-    def add_alias(self, m:dict, alias:str) -> bool:
-        m_name = function_kit.get_v_from_d(m, "pieceName")
+    def add_alias(self, m:Memoria, alias:str) -> bool:
+        m_name = m.name
         if m_name is None:
             return False
         self.alias_data[alias] = m_name

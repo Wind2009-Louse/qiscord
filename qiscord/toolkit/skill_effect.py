@@ -1,3 +1,6 @@
+from typing import List
+
+
 class Skill:
     '''
     技能信息
@@ -9,8 +12,9 @@ class Skill:
         self.effect_type = ""
         # 冷却时间
         self.turn = 0
+        self.current_turn = 0
         # 效果列表
-        self.art_list = []
+        self.art_list : List[dict] = []
         # 自身发动的概率
         self.self_cent = 1
         # 合计发生的概率

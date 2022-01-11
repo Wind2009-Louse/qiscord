@@ -72,10 +72,10 @@ def print_chara(chara:Chara, filter: CharaPrintFilter) -> str:
                 result += "(%s)"%chara.doppel_zhname
         
         if filter.print_ex_skill:
-            if len(chara.ex_nmlb_artlist) > 0:
-                result += "\nEx技能1：战斗开始时获得" + function_kit.artlist_to_str(chara.ex_nmlb_artlist)
-            if len(chara.ex_mlb_artlist) > 0:
-                result += "\nEx技能2：战斗开始时获得" + function_kit.artlist_to_str(chara.ex_mlb_artlist)
+            if len(chara.ex_nmlb_skill.art_list) > 0:
+                result += "\nEx技能1：" + function_kit.skill_to_str(chara.ex_nmlb_skill)
+            if len(chara.ex_mlb_skill.art_list) > 0:
+                result += "\nEx技能2：" + function_kit.skill_to_str(chara.ex_mlb_skill)
 
         if filter.print_enhance_skill:
             result += "\n精神强化效果："

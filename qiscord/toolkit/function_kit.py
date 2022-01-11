@@ -10,6 +10,33 @@ def get_v_from_d(d: dict, k, default=None, need_str=False):
         res = str(res)
     return res
 
+def get_value_in_between(value, boundary1, boundary2):
+    lower = 0
+    upper = 0
+    if boundary1 < boundary2:
+        lower = boundary1
+        upper = boundary2
+    else:
+        lower = boundary2
+        upper = boundary1
+    return min(max(lower, value), upper)
+
+def trans_str_to_int(s: str, default: int=None):
+    try:
+        result = int(s)
+        return result
+    except Exception:
+        pass
+    return default
+
+def trans_str_to_float(s: str, default: float=None):
+    try:
+        result = float(s)
+        return result
+    except Exception:
+        pass
+    return default
+
 ATTR_LIST = {"FIRE": "火",
              "TIMBER" : "木",
              "WATER": "水",
@@ -201,7 +228,7 @@ def art_to_str(this_art):
         else:
             this_mem_str += "%sDOWN" % (WORDS_TRANS[this_art["effectCode"]])
     elif this_art["verbCode"] == "INITIAL" and this_art["effectCode"] == "MP":
-        this_mem_str += "初始%dMP" % (this_art["effectValue"] / 10)
+        this_mem_str += "初始%d%%MP" % (this_art["effectValue"] / 10)
     elif this_art["verbCode"] == "RESURRECT":
         this_mem_str += "苏生"
     elif this_art["verbCode"] == "DRAW":

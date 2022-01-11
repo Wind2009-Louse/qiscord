@@ -53,8 +53,8 @@ class CharaCard:
         self.magia_artlist = []
         self.doppel_artlist = []
 
-        self.ex_nmlb_artlist = []
-        self.ex_mlb_artlist = []
+        self.ex_nmlb_skill = skill_effect.Skill()
+        self.ex_mlb_skill = skill_effect.Skill()
 
         self.random_doppel_list: List[skill_effect.Skill] = []
 
@@ -80,8 +80,8 @@ class Chara:
         self.enhance_charge = 0
         self.enhance_skill_list: List[skill_effect.Skill] = []
 
-        self.ex_nmlb_artlist : List[dict] = []
-        self.ex_mlb_artlist : List[dict] = []
+        self.ex_nmlb_skill = skill_effect.Skill()
+        self.ex_mlb_skill = skill_effect.Skill()
 
         self.connect_name : str = None
         self.connect_zhname : str = None
@@ -267,8 +267,8 @@ class CharaDb:
             current_chara.connect_name = last_card.connect_name
             current_chara.magia_name = last_card.magia_name
             current_chara.doppel_name = last_card.doppel_name
-            current_chara.ex_nmlb_artlist = last_card.ex_nmlb_artlist
-            current_chara.ex_mlb_artlist = last_card.ex_mlb_artlist
+            current_chara.ex_nmlb_skill = last_card.ex_nmlb_skill
+            current_chara.ex_mlb_skill = last_card.ex_mlb_skill
 
             # 精神强化数据
             enhance_cell_list = function_kit.get_v_from_d(d, "enhancementCellList")
@@ -303,7 +303,8 @@ class CharaDb:
                                 break
                             current_skill.art_list.append(enhance_skill[art_key])
                             art_effect_turn = function_kit.get_v_from_d(enhance_skill[art_key], "enableTurn", 0)
-                            art_effect_max_turn = max(art_effect_max_turn, art_effect_turn)
+                            if function_kit.get_v_from_d(enhance_skill[art_key], "verbCode", 0) != "ENCHANT":
+                                art_effect_max_turn = max(art_effect_max_turn, art_effect_turn)
                         if art_effect_max_turn > 0 and current_skill.effect_type == "ABILITY":
                             current_skill.effect_type = "STARTUP"
                         current_chara.enhance_skill_list.append(current_skill)
@@ -343,10 +344,12 @@ class CharaDb:
         # 获取ex技能数据
         ex_data_dict = function_kit.get_v_from_d(card_data, "pieceSkillList", [])
         if len(ex_data_dict) > 0:
-            card.ex_nmlb_artlist = function_kit.get_artlist_from_skill(ex_data_dict[0])
+            card.ex_nmlb_skill.effect_type = "STARTUP"
+            card.ex_nmlb_skill.art_list.extend(function_kit.get_artlist_from_skill(ex_data_dict[0]))
         ex_data_dict = function_kit.get_v_from_d(card_data, "maxPieceSkillList", [])
         if len(ex_data_dict) > 0:
-            card.ex_mlb_artlist = function_kit.get_artlist_from_skill(ex_data_dict[0])
+            card.ex_mlb_skill.effect_type = "STARTUP"
+            card.ex_mlb_skill.art_list.extend(function_kit.get_artlist_from_skill(ex_data_dict[0]))
 
         # 获取觉醒数据
         awaken_data = function_kit.get_v_from_d(card_data, "cardCustomize")
